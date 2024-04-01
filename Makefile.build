@@ -1,0 +1,45 @@
+PHONY := __build
+__build:
+
+obj-y :=
+subdir-y :=
+
+include Makefile
+
+__subdir-y	:= $(patsubst %/,%,$(filter %/, $(obj-y)))
+subdir-y	+= $(__subdir-y)
+
+# a.o b.o
+cur_objs := $(filter-out %/, $(obj-y))
+dep_files := $(foreach f,$(cur_objs),.$(f).d)
+dep_files := $(wildcard $(dep_files))
+
+ifneq ($(dep_files),)
+  include $(dep_files)
+endif
+
+PHONY += $(subdir-y)
+
+__build : $(subdir-y) $(cur_objs)
+
+$(subdir-y):
+	make -C $@ -f $(TOPDIR)/Makefile.build
+
+dep_file = .$@.d
+
+%.o : %.c
+	$(CC) $(CFLAGS) -Wp,-MD,$(dep_file) -c -o $@ $<
+	@echo -n $(shell pwd)/$@ >> $(TOPDIR)/.objs
+	@echo -n ' ' >> $(TOPDIR)/.objs
+
+%.o : %.S
+	$(CC) $(CFLAGS) -Wp,-MD,$(dep_file) -c -o $@ $<
+	@echo -n $(shell pwd)/$@ >> $(TOPDIR)/.objs
+	@echo -n ' ' >> $(TOPDIR)/.objs
+
+%.o : %.s
+	$(CC) $(CFLAGS) -Wp,-MD,$(dep_file) -c -o $@ $<
+	@echo -n $(shell pwd)/$@ >> $(TOPDIR)/.objs
+	@echo -n ' ' >> $(TOPDIR)/.objs
+	
+.PHONY : $(PHONY)
